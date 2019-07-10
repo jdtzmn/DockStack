@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 EXPOSE \
     # OpenStack Dashboard (Horizon)
@@ -29,11 +29,11 @@ RUN systemctl set-default multi-user.target
 STOPSIGNAL SIGRTMIN+3
 # Cleanup unneeded services
 RUN find /etc/systemd/system \
-         /lib/systemd/system \
-         -path '*.wants/*' \
-         -not -name '*journald*' \
-         -not -name '*systemd-tmpfiles*' \
-         -not -name '*systemd-user-sessions*' \
+        /lib/systemd/system \
+        -path '*.wants/*' \
+        -not -name '*journald*' \
+        -not -name '*systemd-tmpfiles*' \
+        -not -name '*systemd-user-sessions*' \
     -exec rm \{} \;
 # Workaround for console output error moby/moby#27202, based on moby/moby#9212
 CMD ["/bin/bash", "-c", "exec /sbin/init --log-target=journal 3>&1"]
@@ -71,24 +71,18 @@ ARG PROJECTS_BRANCH="master"
 # This OpenStack project repositories will be downloaded
 ARG PROJECTS=" \
         keystone \
-        nova \
-        neutron \
-        glance \
         horizon \
-        zun \
-        zun-ui \
-        kuryr-libnetwork \
     "
 # Clone DevStack, Requirements and OpenStack (Core) Projects
 #  - To properly detect a container environment,
 #    we need at least openstack-dev/devstack/commit/63666a2
-RUN git clone git://git.openstack.org/openstack-dev/devstack --branch $DEVSTACK_BRANCH && \
-    git clone git://git.openstack.org/openstack/requirements --branch $DEVSTACK_BRANCH /opt/stack/requirements && \
+RUN git clone https://github.com/openstack-dev/devstack --branch $DEVSTACK_BRANCH && \
+    git clone https://github.com/openstack/requirements --branch $DEVSTACK_BRANCH /opt/stack/requirements && \
     for \
         PROJECT in $PROJECTS; \
     do \
         git clone \
-            git://git.openstack.org/openstack/$PROJECT.git \
+            https://github.com/openstack/$PROJECT.git \
             /opt/stack/$PROJECT \
             --branch $PROJECTS_BRANCH \
             --depth 1 \
@@ -142,10 +136,10 @@ ARG VCS_REF
 ARG VERSION
 LABEL org.label-schema.build-date=$BUILD_DATE \
         org.label-schema.name="DockStack" \
-        org.label-schema.description="Docker on DevStack on Docker" \
+        org.label-schema.description="DevStack on Docker" \
         org.label-schema.version=$VERSION-$BUILD_DATE-git-$VCS_REF \
-        org.label-schema.vendor="Jan Mattfeld" \
-        org.label-schema.vcs-url="https://github.com/janmattfeld/DockStack" \
+        org.label-schema.vendor="jdtzmn" \
+        org.label-schema.vcs-url="https://github.com/jdtzmn/DockStack" \
         org.label-schema.vcs-ref=$VCS_REF \
         org.label-schema.docker.cmd="docker run --privileged --detach devstack " \
         org.label-schema.docker.params="DEVSTACK_BRANCH, PROJECTS_BRANCH, PROJECTS" \

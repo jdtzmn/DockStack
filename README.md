@@ -1,10 +1,15 @@
-[![Build Status](https://travis-ci.org/janmattfeld/DockStack.svg?branch=master)](https://travis-ci.org/janmattfeld/DockStack) [![Image Layers](https://images.microbadger.com/badges/image/janmattfeld/dockstack.svg)](https://microbadger.com/images/janmattfeld/dockstack)
 
-# DockStack – Docker on DevStack on Docker
+# DockStack – DevStack on Docker
 
-[![Build Status](./architecture.svg)](https://travis-ci.org/janmattfeld/DockStack)
+> This project installs DevStack inside a Docker container.
 
-> This project installs DevStack inside a Docker container and integrates Zun, the current OpenStack container project.
+[![Build Status](https://travis-ci.org/jdtzmn/DockStack.svg?branch=master)](https://travis-ci.org/jdtzmn/DockStack)
+
+## **NOTICE**
+
+This version of DockStack is based on the [original](https://github.com/janmattfeld/DockStack) by janmattfeld.
+
+It updates the devstack to the stein version as well as removing some excessive features.
 
 ## Why
 
@@ -16,55 +21,27 @@ A DevStack setup should
 4. Be lightweight
 5. Run guest applications fast
 
-The most straight forward option `bare metal` lacks support for snapshots. It also alters the system heavily, rendering it unusable for other tasks. So it is only suitable for dedicated developer machines. Additionally, the well-known reset workflow of unstack/stack is unreliable, making this solution slow and annoying.
-
-So, get a virtual machine and all of the above problems would be gone! Except for performance of course. Instead of `VirtualBox`, we could use `libvirt` with nested-KVM and speed things up. If you already know libvirsh, that may work fine.
-
-Running inside `LXD` containers might also be an option. They support multiple processes and feel more like a classic VM. Actually, they focus on IaaS [[1]]. However, an LXD-DevStack setup challenges just as much as on Docker [[2]], [[9]].
-
-Also note OpenStack Kolla, which builds individual Docker containers for every project [[10]].
-
-[1]: https://www.ubuntu.com/containers/lxd
-[2]: https://stgraber.org/2016/10/26/lxd-2-0-lxd-and-openstack-1112/
-[9]: https://docs.openstack.org/devstack/latest/guides/lxc.html
-[10]: https://cloudbase.it/openstack-kolla-hyper-v/
-
 ### Not invented here
 
-Running Docker on DevStack actually has been done before [[3]]. We add the following:
+Running Docker on DevStack actually has been done before [[1]]. We add the following:
 
 1. Ubuntu 16.04 LTS base image
-2. systemd [[7]]
+2. systemd [[2]]
 3. OpenStack Ocata and Pike
 4. libvirt/QEMU instance support
 5. Zun instead of the deprecated Nova Docker
 6. container-adjusted DevStack configuration
 7. Network configuration
 
-[3]: https://github.com/ewindisch/dockenstack
-[7]: https://docs.openstack.org/devstack/latest/systemd.html
-
-### Containers in OpenStack
-
-**Zun** [[5]], OpenStack API for launching and managing containers backed by different technologies including Docker
-
-**Nova Docker** (deprecated) [[4]], allows accessing containers via Nova's API, while Zun is not bounded by Nova's API
-
-**Nova LXD**, pushed by Canonical to promote LXD, OpenStack itself may be installed within LXD with Juju
-
-**Magnum** (Orchestration), a self-service solution to provision and manage a Kubernetes (or other COEs) cluster
-
-And some more. Get an overview [[13]].
-
-[4]: https://wiki.openstack.org/wiki/Docker
-[13]: https://de.slideshare.net/openstackindia/state-of-containers-in-openstack
+[1]: https://github.com/ewindisch/dockenstack
+[2]: https://docs.openstack.org/devstack/latest/systemd.html
 
 ## Quickstart
 
 The `Makefile` includes a complete Docker lifecycle. Image build and DevStack installation are simply started with
 
 ```console
-$ git clone https://github.com/janmattfeld/DockStack.git
+$ git clone https://github.com/jdtzmn/DockStack.git
 $ cd DockStack
 $ make
 
@@ -76,8 +53,8 @@ The password: secret
 
 Services are running under systemd unit files.
 
-DevStack Version: pike
-OS Version: Ubuntu 16.04 xenial
+DevStack Version: stein
+OS Version: Ubuntu 18.04 xenial
 ```
 
 The first run can take up to 50 minutes, downloading all Ubuntu and Python packages. Subsequent container starts are much faster because of the Docker cache.
@@ -85,10 +62,7 @@ The first run can take up to 50 minutes, downloading all Ubuntu and Python packa
 ### Usage
 
 - Enter the main DevStack container directly with `make bash`.
-- Start a Cirros container via Zun with `make test`.
 - Check your installation via Horizon at the displayed address.
-
-[5]: https://docs.openstack.org/zun/latest/dev/quickstart.html
 
 ### Network
 
@@ -118,43 +92,26 @@ $ ip route
 172.24.4.0/24 via 172.17.0.2 dev docker0
 ```
 
-### Zun Troubleshooting
-
-Pulling a new Docker image might fail with `'module' object has no attribute 'get_config_header'` because of an old `docker-py` version [[11]] [[12]].
-
-```console
-# Remove any Docker SDK artifacts
-pip uninstall docker docker-py
-rm -rf /usr/local/lib/python2.7/site-packages/docker/auth/
-# Get the current version, now just called `docker`
-pip install docker
-# Make Zun aware of the new Docker library
-sudo systemctl restart devstack@zun*
-```
-
-[11]: https://github.com/docker/docker-py/issues/1353
-[12]: https://review.openstack.org/#/c/475526/
-
 ### Configuration
 
-Feel free to adjust the file `local.conf` for your needs [[8]].
+Feel free to adjust the file `local.conf` for your needs [[3]].
 
-[8]: https://docs.openstack.org/devstack/latest/configuration.html#local-conf
+[3]: https://docs.openstack.org/devstack/latest/configuration.html#local-conf
 
 ### Snapshots
 
 Although a container restart is faster than a complete build, it still takes a few minutes. So for experimenting use
 
 - `docker commit` to save your running DevStack into the image
-- Docker checkpoints [[6]] (experimental)
+- Docker checkpoints [[4]] (experimental)
 - the classic workflow of `/devstack/unstack.sh` and `/devstack/stack.sh`
 
 If you really messed it up, `make clean` followed by `make run` will set up a fresh DevStack.
 
-[6]: https://criu.org/Docker
+[4]: https://criu.org/Docker
 
 ### Requirements
 
-- Recent Linux (tested on Ubuntu 16.04 LTS and 17.04)
+- Recent Linux (tested on Ubuntu 18.04 LTS)
 - 4 GB of RAM available for the container
 - Docker (tested on 17.06.0-ce)
